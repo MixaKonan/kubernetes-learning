@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  labels:
+    tier: backend-main
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      tier: backend-main
+  template:
+    metadata:
+      labels:
+        tier: backend-main
+    spec:
+      containers:
+      - name: web-api
+        image: project.webapi:v1
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /weatherforecast
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 3
+          failureThreshold: 2
+        readinessProbe:
+          httpGet:
+            path: /weatherforecast
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 3
+          failureThreshold: 2
