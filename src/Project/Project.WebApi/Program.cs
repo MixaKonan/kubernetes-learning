@@ -1,9 +1,17 @@
+using Dapper;
+using Microsoft.Extensions.Options;
+using Npgsql;
+using Project.WebApi;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.Configure<WebApiOptions>(builder.Configuration.Bind);
+builder.Services.Configure<DatabaseOptions>(builder.Configuration.Bind);
 
 var app = builder.Build();
 
@@ -34,6 +42,26 @@ app.MapGet("/weatherforecast", () =>
        return forecast;
    })
    .WithName("GetWeatherForecast")
+   .WithOpenApi();
+
+app.MapGet("/secret", (IOptions<WebApiOptions> webApiOptions) => webApiOptions.Value.SomeSecretKey)
+   .WithName("GetSecret")
+   .WithOpenApi();
+
+app.MapGet("/db-secret", (IOptions<DatabaseOptions> databaseOptions) => databaseOptions.Value.Password)
+   .WithName("GetDatabaseSecret")
+   .WithOpenApi();
+
+app.MapGet("/time-now", (IOptions<DatabaseOptions> databaseOptions) =>
+   {
+       using var connection = new NpgsqlConnection(databaseOptions.Value.ConnectionString);
+       connection.Open();
+
+       var now = connection.ExecuteScalar<DateTime>("select now()");
+
+       return now.ToLongDateString();
+   })
+   .WithName("GetTimeNow")
    .WithOpenApi();
 
 app.Run();
