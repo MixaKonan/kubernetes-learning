@@ -28,6 +28,14 @@ spec:
             limits:
               cpu: "500m"
               memory: "2048Mi"
+          readinessProbe:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - -e
+              - |
+                exec pg_isready -U "ps_user" -h localhost -p 5432
       volumes:
         - name: postgresdata
           persistentVolumeClaim:
