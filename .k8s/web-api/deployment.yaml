@@ -26,6 +26,8 @@ spec:
             name: postgres-secret
         - configMapRef:
             name: web-api-secret
+        - configMapRef:
+            name: jwt-options-secret
         livenessProbe:
           httpGet:
             path: /weatherforecast

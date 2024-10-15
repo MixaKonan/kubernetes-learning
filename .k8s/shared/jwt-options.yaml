@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jwt-options-secret
+data:
+  Issuer: project.auth
+  Audience: project.web-api
+  ExpiresInHours: 1
+  ScSecret: SOME_SECRET_VALUE
