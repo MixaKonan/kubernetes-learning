@@ -9,7 +9,11 @@
       "applicationUrl": "http://localhost:8080",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "SOME_SECRET_KEY": "some_secret_value"
+        "SOME_SECRET_KEY": "some_secret_value",
+        "Issuer": "project.auth",
+        "Audience": "project.api",
+        "ExpiresInHours": "1",
+        "ScSecret": "1eGWVRmPXUDU6e5VgxjgGTW6SFgBXBUWlaDPDD4w7fO2LJ208lBXXoxCvgSsP7SEgPHxS0UxAhiC1X7gQhreHAMUT6PkdhBAF8uFIPu6XmJs3oE2SETEcqiUzg7yTLHw"
       }
     }
   }

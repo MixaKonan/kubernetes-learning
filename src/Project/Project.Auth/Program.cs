@@ -1,44 +1,45 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;
+using Project.Auth;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.Configure<JwtOptions>(builder.Configuration.Bind);
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
-
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
+app.MapPost("/login", (
+       [FromBody] LoginRequest loginRequest,
+       [FromServices] IOptions<JwtOptions> jwtOptions) =>
    {
-       var forecast = Enumerable.Range(1, 5).Select(index =>
-                                    new WeatherForecast
-                                    (
-                                        DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                                        Random.Shared.Next(-20, 55),
-                                        summaries[Random.Shared.Next(summaries.Length)]
-                                    ))
-                                .ToArray();
-       return forecast;
+       var tokenDescriptor = new SecurityTokenDescriptor
+       {
+           SigningCredentials = jwtOptions.Value.SigningCredentials,
+           Audience = jwtOptions.Value.Audience,
+           Issuer = jwtOptions.Value.Issuer,
+           Expires = DateTime.UtcNow.AddHours(jwtOptions.Value.ExpiresInHours),
+           Claims = new Dictionary<string, object>()
+           {
+               [JwtRegisteredClaimNames.Email] = loginRequest.Email
+           }
+       };
+
+       var token = new JsonWebTokenHandler().CreateToken(tokenDescriptor);
+
+       return new {token};
    })
-   .WithName("GetWeatherForecast")
+   .WithName("Login")
    .WithOpenApi();
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int) (TemperatureC / 0.5556);
-}

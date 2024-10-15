@@ -1,28 +1,82 @@
+using System.Text;
 using Dapper;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using Npgsql;
 using Project.WebApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    var securityScheme = new OpenApiSecurityScheme
+    {
+        Name = "JWT Authentication",
+        Description = "Enter your JWT token in this field",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
+    };
+
+    options.AddSecurityDefinition("Bearer", securityScheme);
+
+    var securityRequirement = new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            []
+        }
+    };
+
+    options.AddSecurityRequirement(securityRequirement);
+});
 
 builder.Services.Configure<WebApiOptions>(builder.Configuration.Bind);
 builder.Services.Configure<DatabaseOptions>(builder.Configuration.Bind);
 
+builder.Services
+       .AddAuthentication(options =>
+       {
+           options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+           options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+       })
+       .AddJwtBearer(options =>
+       {
+           options.RequireHttpsMetadata = false;
+           options.SaveToken = true;
+           options.TokenValidationParameters = new TokenValidationParameters
+           {
+               IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["ScSecret"]!)),
+               ValidateIssuer = true,
+               ValidIssuer = builder.Configuration["Issuer"]!,
+               ValidateAudience = true,
+               ValidAudience = builder.Configuration["Audience"]!
+           };
+       });
+
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
 
 var summaries = new[]
 {
@@ -46,11 +100,13 @@ app.MapGet("/weatherforecast", () =>
 
 app.MapGet("/secret", (IOptions<WebApiOptions> webApiOptions) => webApiOptions.Value.SomeSecretKey)
    .WithName("GetSecret")
-   .WithOpenApi();
+   .WithOpenApi()
+   .RequireAuthorization();
 
 app.MapGet("/db-secret", (IOptions<DatabaseOptions> databaseOptions) => databaseOptions.Value.Password)
    .WithName("GetDatabaseSecret")
-   .WithOpenApi();
+   .WithOpenApi()
+   .RequireAuthorization();
 
 app.MapGet("/time-now", (IOptions<DatabaseOptions> databaseOptions) =>
    {
